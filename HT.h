@@ -17,7 +17,6 @@
 
 int hash_function(int x){
     return ((5*x + 12) % 78901) % BUCKETS;
-
 }
 
 typedef struct{
@@ -81,12 +80,15 @@ int HT_CreateIndex(char* fileName, char attrType, char* attrName, int attrLength
     }
 
     Block0 block0;
-    block0.id = 0;
-    block0.info = info;
+    memcpy(blockData, &(info.fileDesc), sizeof(int));
+    memcpy(blockData + sizeof(int), &(info.attrType), sizeof(char));
+    memcpy(blockData + sizeof(char) + sizeof(int), &(info.attrLength), sizeof(int));
+    memcpy(blockData + sizeof(char) + 2*sizeof(int), &(info.attrName[0]), attrLength);
+    memcpy(blockData + sizeof(char) + attrLength + 2*sizeof(int), &(info.numBuckets), sizeof(long int));
     for (int i =0; i<BUCKETS; i++) block0.hash_table[i] = -1;
 
+    memcpy(blockData + sizeof(char) + attrLength + 2*sizeof(int)+ sizeof(long int),&(block0.hash_table),sizeof(block0.hash_table));
 
-    memcpy(blockData, &block0, sizeof(Block0));
 
     if(BF_WriteBlock(fileDesc, 0) < 0){
 
