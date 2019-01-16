@@ -28,7 +28,6 @@ typedef struct{
 }Record;
 
 typedef struct{
-    int id;     //The id of the block
     int counter;        //Number of records in the block
     Record record[MAX_RECORDS];       //An array of records
     int nextBlock;      //"Pointer" to the next block(using the id)
@@ -44,7 +43,6 @@ typedef struct{
 } HT_info;
 
 typedef struct{     //The first block in the file.
-    int id;     //The id of the block
     HT_info info;       //The HT_Info struct
     int hash_table[BUCKETS];
 } Block0;
