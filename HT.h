@@ -52,10 +52,15 @@ int HT_CreateIndex(char* fileName, char attrType, char* attrName, int attrLength
 
     int number;
     number = BF_CreateFile(fileName);
-//    if (number != 0) {
-//        BF_PrintError(number);
-//    }
+    if (number < 0) {
+        BF_PrintError("Error with BF_CreateFile\n");
+        return -1;
+    }
     int fileDesc = BF_OpenFile(fileName);
+    if (fileDesc < 0) {
+        BF_PrintError("Error with BF_OpenFile\n");
+        return -1;
+    }
 
 
     HT_info info;
@@ -68,14 +73,14 @@ int HT_CreateIndex(char* fileName, char attrType, char* attrName, int attrLength
     info.numBuckets = buckets;
 
     if (BF_AllocateBlock(fileDesc) < 0){
-        BF_PrintError("Error with BF_AllocateBlock");
+        BF_PrintError("Error with BF_AllocateBlock\n");
         return -1;
     }
 
     void* blockData;
 
     if (BF_ReadBlock(fileDesc,0, &blockData) < 0){
-        BF_PrintError("Error with BF_ReadBlock");
+        BF_PrintError("Error with BF_ReadBlock\n");
         return -1;
     }
 
@@ -88,7 +93,8 @@ int HT_CreateIndex(char* fileName, char attrType, char* attrName, int attrLength
     for (int i =0; i<BUCKETS; i++) block0.hash_table[i] = -1;
 
 
-    memcpy(blockData + sizeof(char) + attrLength + 2*sizeof(int)+ sizeof(long int),&(block0.hash_table),sizeof(block0.hash_table));
+    memcpy(blockData + sizeof(char) + attrLength + 2*sizeof(int)+ sizeof(long int),&(block0.hash_table),
+            sizeof(block0.hash_table));
 
 
     if(BF_WriteBlock(fileDesc, 0) < 0){
@@ -105,7 +111,39 @@ int HT_CreateIndex(char* fileName, char attrType, char* attrName, int attrLength
     return 0;
 }
 
-HT_info* HT_OpenIndex(char* fileName){};
+HT_info* HT_OpenIndex(char* fileName){
+
+    int fileDesc = BF_OpenFile(fileName);
+    if (fileDesc < 0) {
+        BF_PrintError("Error with BF_OpenFile\n");
+        return NULL;
+    }
+
+
+    HT_info* info;
+    void* blockData;
+    Block0 block0;
+
+    if (BF_ReadBlock(fileDesc,0,blockData) < 0){
+        BF_PrintError("Error with BF_ReadBlock\n");
+        return NULL;
+    }
+
+    info->fileDesc = fileDesc;
+    memcpy(&(info->attrType) , (char*) blockData + sizeof(int), sizeof(char));
+    memcpy(&(info->attrLength) , (char*) blockData + sizeof(int) + sizeof(char), sizeof(int));
+    info->attrName = malloc((size_t) info->attrLength);
+    memcpy(info->attrName , (char*) blockData + 2*sizeof(int) + sizeof(char) , info->attrLength);
+    memcpy(&(info->numBuckets) , (char*) blockData + 2*sizeof(int) + sizeof(char) + info->attrLength, sizeof(long int));
+
+    if(BF_CloseFile(fileDesc) < 0){
+
+        BF_PrintError("Error with closing file\n");
+        return NULL;
+    }
+
+    return info;
+};
 
 int HT_CloseIndex(HT_info* header_info){};
 
