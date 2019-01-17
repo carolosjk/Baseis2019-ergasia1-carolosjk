@@ -9,6 +9,7 @@
 
 #define MAX_RECORDS 6
 #define BUCKETS 10
+#define  INITIAL_VALUE 5381
 
 #include <string.h>
 #include <stdlib.h>
@@ -16,8 +17,17 @@
 #include "BF.h"
 
 
-int hash_function(int x){
-    return ((5*x + 12) % 78901) % BUCKETS;
+int hash_int(int x, long int buckets){
+    return ((5*x + 12) % 78901) % buckets;
+}
+
+int hash_char(char* x, long int buckets){
+    int h = INITIAL_VALUE;
+    int length = strlen(x);
+    for(int i = 0; i < length; i++){
+        h = ((h*33) + x[i]) % buckets;
+    }
+    return h;
 }
 
 typedef struct{
@@ -61,6 +71,8 @@ unsigned char* blockToByteArray(Block block){
 
 
 }
+
+
 
 int HT_CreateIndex(char* fileName, char attrType, char* attrName, int attrLength, int buckets){
 
@@ -170,7 +182,24 @@ int HT_CloseIndex(HT_info* header_info){
 
 };
 
-int HT_InsertEntry(HT_info header_info, Record record){};
+int HT_InsertEntry(HT_info header_info, Record record){
+
+    int bucket = hash_int(record.id,header_info.numBuckets);
+    int hash_table[header_info.numBuckets];
+
+    void* blockData0 = malloc(BLOCK_SIZE);
+
+    if (BF_ReadBlock(header_info.fileDesc,0, &blockData0) < 0){
+        BF_PrintError("Error with BF_ReadBlock\n");
+        return -1;
+    }
+    int nameSize = strlen(header_info.attrName) + 1;
+    memcpy(&hash_table[0] ,  blockData0 + sizeof(int) + sizeof(char) + nameSize + sizeof(long int),sizeof(hash_table));
+
+    Block block;
+    void* blockData = malloc(BLOCK_SIZE);
+    If
+};
 
 int HT_DeleteEntry(HT_info header_info, void* value){};
 
