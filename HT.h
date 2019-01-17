@@ -12,6 +12,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include "BF.h"
 
 
@@ -42,11 +43,24 @@ typedef struct{
 } HT_info;
 
 typedef struct{     //The first block in the file.
-    HT_info info;       //The HT_Info struct
+    char attrType;
+    char* attrName;
+    int attrLength;
+    long int numBuckets;
     int hash_table[BUCKETS];
 } Block0;
 
+unsigned char* blockToByteArray(Block block){
 
+    unsigned char* byteArray = malloc(BLOCK_SIZE);
+    byteArray[0] = 1;
+    byteArray[1] = block.counter;
+    for(int i=0; i < block.counter;i++){
+        memcpy(&(byteArray[2+i* sizeof(Record)]),&(block.record[i]), sizeof(Record));
+    }
+
+
+}
 
 int HT_CreateIndex(char* fileName, char attrType, char* attrName, int attrLength, int buckets){
 
@@ -63,39 +77,38 @@ int HT_CreateIndex(char* fileName, char attrType, char* attrName, int attrLength
     }
 
 
-    HT_info info;
+    Block0 block0;
 
-    info.fileDesc = fileDesc;
-    info.attrLength = attrLength;
-    info.attrName = (char*) malloc((size_t)attrLength);
-    strcpy(info.attrName,attrName);
-    info.attrType = attrType;
-    info.numBuckets = buckets;
+
+    block0.attrLength = attrLength;
+    block0.attrName =  malloc(strlen(attrName)+1);
+    strcpy(block0.attrName,attrName);
+    block0.attrType = attrType;
+    block0.numBuckets = buckets;
 
     if (BF_AllocateBlock(fileDesc) < 0){
         BF_PrintError("Error with BF_AllocateBlock\n");
         return -1;
     }
 
-    void* blockData;
+    void* blockData = malloc(BLOCK_SIZE);
+
 
     if (BF_ReadBlock(fileDesc,0, &blockData) < 0){
         BF_PrintError("Error with BF_ReadBlock\n");
         return -1;
     }
 
-    Block0 block0;
-    memcpy(blockData, &(info.fileDesc), sizeof(int));
-    memcpy(blockData + sizeof(int), &(info.attrType), sizeof(char));
-    memcpy(blockData + sizeof(char) + sizeof(int), &(info.attrLength), sizeof(int));
-    memcpy(blockData + sizeof(char) + 2*sizeof(int), &(info.attrName[0]), attrLength);
-    memcpy(blockData + sizeof(char) + attrLength + 2*sizeof(int), &(info.numBuckets), sizeof(long int));
-    for (int i =0; i<BUCKETS; i++) block0.hash_table[i] = -1;
+    memcpy(blockData, &(block0.attrType), sizeof(char));
+    int nameSize = strlen(block0.attrName)+1;  // attrName size
+    printf("%d\n",nameSize);
+    memcpy(blockData + sizeof(char), block0.attrName, nameSize);
+    memcpy(blockData + sizeof(char) + nameSize, &(block0.attrLength), sizeof(int));
+    memcpy(blockData + sizeof(char) + sizeof(int) + nameSize, &(block0.numBuckets), sizeof(long int));
 
-
-    memcpy(blockData + sizeof(char) + attrLength + 2*sizeof(int)+ sizeof(long int),&(block0.hash_table),
+    for (int i =0; i<block0.numBuckets; i++) block0.hash_table[i] = -1;
+    memcpy(blockData + sizeof(char) + sizeof(int) + sizeof(long int) + nameSize,&(block0.hash_table),
             sizeof(block0.hash_table));
-
 
     if(BF_WriteBlock(fileDesc, 0) < 0){
 
@@ -120,21 +133,22 @@ HT_info* HT_OpenIndex(char* fileName){
     }
 
 
-    HT_info* info;
-    void* blockData;
+    HT_info* info = malloc(sizeof(HT_info));
+    void* blockData = malloc(BLOCK_SIZE);
     Block0 block0;
 
-    if (BF_ReadBlock(fileDesc,0,blockData) < 0){
+
+    if (BF_ReadBlock(fileDesc,0,&blockData) < 0){
         BF_PrintError("Error with BF_ReadBlock\n");
         return NULL;
     }
-
     info->fileDesc = fileDesc;
-    memcpy(&(info->attrType) , (char*) blockData + sizeof(int), sizeof(char));
-    memcpy(&(info->attrLength) , (char*) blockData + sizeof(int) + sizeof(char), sizeof(int));
-    info->attrName = malloc((size_t) info->attrLength);
-    memcpy(info->attrName , (char*) blockData + 2*sizeof(int) + sizeof(char) , info->attrLength);
-    memcpy(&(info->numBuckets) , (char*) blockData + 2*sizeof(int) + sizeof(char) + info->attrLength, sizeof(long int));
+    memcpy(&(info->attrType) , blockData , sizeof(char));
+    int nameSize = strlen((char*)blockData + sizeof(char)) + 1; // Finding the size of attrName
+    info->attrName = (char*) malloc(nameSize);
+    memcpy(info->attrName ,  blockData + sizeof(char) , nameSize);
+    memcpy(&(info->attrLength) ,  blockData + sizeof(char) + nameSize , sizeof(int));
+    memcpy(&(info->numBuckets) ,  blockData + sizeof(int) + sizeof(char) + nameSize, sizeof(long int));
 
     if(BF_CloseFile(fileDesc) < 0){
 
