@@ -18,7 +18,7 @@
 
 
 int hash_int(int x, long int buckets){
-    return ((5*x + 12) % 78901) % buckets;
+    return ((3*x + 14544) % 78901) % buckets;
 }
 
 int hash_char(char* x, long int buckets){
@@ -68,10 +68,37 @@ unsigned char* blockToByteArray(Block block){
     for(int i=0; i < block.counter;i++){
         memcpy(&(byteArray[2+i* sizeof(Record)]),&(block.record[i]), sizeof(Record));
     }
-
-
 }
 
+int createNewBlock(const int fileDesc){     //Returns the new block id or -1 upon failure
+
+    Block newBlock;
+    void* blockData = malloc(BLOCK_SIZE);
+    newBlock.counter = 0;
+    newBlock.nextBlock = -1;
+
+    if (BF_AllocateBlock(fileDesc) < 0){
+        BF_PrintError("Error with BF_AllocateBlock\n");
+        return -1;
+    }
+    int number = BF_GetBlockCounter(fileDesc);
+    if (number < 0 ){
+        BF_PrintError("Error with BF_GetBlockCounter\n");
+        return -1;
+    }
+    if (BF_ReadBlock(fileDesc,number-1, &blockData) < 0){
+        BF_PrintError("Error with BF_ReadBlock\n");
+        return -1;
+    }
+    memcpy(blockData, &newBlock, sizeof(Block));
+    if(BF_WriteBlock(fileDesc,number-1) < 0){
+
+        BF_PrintError("Error with write\n");
+        return -1;
+    }
+
+    return  number - 1;
+}
 
 
 int HT_CreateIndex(char* fileName, char attrType, char* attrName, int attrLength, int buckets){
@@ -196,9 +223,35 @@ int HT_InsertEntry(HT_info header_info, Record record){
     int nameSize = strlen(header_info.attrName) + 1;
     memcpy(&hash_table[0] ,  blockData0 + sizeof(int) + sizeof(char) + nameSize + sizeof(long int),sizeof(hash_table));
 
+    //If the bucket that we must insert the record in, has no blocks, then we allocate a new block
+    //and put the id of the block to hash_table[bucket]
+    if(hash_table[bucket] == -1){
+
+        int newBlockId = createNewBlock(header_info.fileDesc);
+        printf("%d\n",newBlockId);
+        if (newBlockId < 0 ){
+            BF_PrintError("Error with BF_GetBlockCounter\n");
+            return -1;
+        }
+        hash_table[bucket] = newBlockId;
+        memcpy(blockData0 + sizeof(char) + sizeof(int) + sizeof(long int) + nameSize,&hash_table[0],
+               sizeof(hash_table));
+        if(BF_WriteBlock(header_info.fileDesc, 0) < 0){
+
+            BF_PrintError("Error with write\n");
+            return -1;
+        }
+    }
+
     Block block;
     void* blockData = malloc(BLOCK_SIZE);
-    If
+
+    //Reading the first block of the bucket.
+    if (BF_ReadBlock(header_info.fileDesc,0, &blockData0) < 0){
+        BF_PrintError("Error with BF_ReadBlock\n");
+        return -1;
+    }
+
 };
 
 int HT_DeleteEntry(HT_info header_info, void* value){};
