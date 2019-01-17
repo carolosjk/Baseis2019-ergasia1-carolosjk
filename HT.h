@@ -150,16 +150,25 @@ HT_info* HT_OpenIndex(char* fileName){
     memcpy(&(info->attrLength) ,  blockData + sizeof(char) + nameSize , sizeof(int));
     memcpy(&(info->numBuckets) ,  blockData + sizeof(int) + sizeof(char) + nameSize, sizeof(long int));
 
-    if(BF_CloseFile(fileDesc) < 0){
-
-        BF_PrintError("Error with closing file\n");
-        return NULL;
-    }
+//    if(BF_CloseFile(fileDesc) < 0){
+//
+//        BF_PrintError("Error with closing file\n");
+//        return NULL;
+//    }
 
     return info;
 };
 
-int HT_CloseIndex(HT_info* header_info){};
+int HT_CloseIndex(HT_info* header_info){
+
+    if(BF_CloseFile(header_info->fileDesc) < 0){
+        BF_PrintError("Error with closing file\n");
+        return -1;
+    }
+    free(header_info);
+    return 0;
+
+};
 
 int HT_InsertEntry(HT_info header_info, Record record){};
 
