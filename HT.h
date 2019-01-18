@@ -179,7 +179,6 @@ HT_info* HT_OpenIndex(char* fileName){
 
     HT_info* info = malloc(sizeof(HT_info));
     void* blockData = malloc(BLOCK_SIZE);
-    Block0 block0;
 
 
     if (BF_ReadBlock(fileDesc,0,&blockData) < 0){
@@ -216,7 +215,7 @@ int HT_CloseIndex(HT_info* header_info){
 
 int HT_InsertEntry(HT_info header_info, Record record){
 
-    int bucket = hash_int(record.id,header_info.numBuckets);    // The bucket in which the record must be insterted
+    int bucket = hash_int(record.id,header_info.numBuckets);    // The bucket in which the record must be inserted
 //    printf("%d\n",bucket);
     int blockId;        // The id of the block in which the record was inserted
     int hash_table[header_info.numBuckets];
@@ -407,6 +406,37 @@ int HT_GetAllEntries(HT_info header_info, void* value){
     else return -1;
 
 };
+
+// Finds a record in the primary index from it's id and returns it.
+Record HT_GetRecordFromKey(int fileDesc, int blockId, void* value){
+
+    int key = *((int*) value);
+
+    void* blockData = malloc(BLOCK_SIZE);
+
+    Block block;
+
+    if (BF_ReadBlock(fileDesc, blockId, &blockData) < 0) {
+        BF_PrintError("Error with BF_ReadBlock\n");
+        Record record;
+        record.id = DELETED_RECORD_ID;
+        return record;      //We return a record with a DELETED_RECORD_ID
+    }
+    memcpy(&block, blockData, sizeof(Block));
+    //Searching for a record with the correct key.
+    for (int i = 0; i < block.counter; i++) {
+        if (block.record[i].id == key) {      //Found the correct record
+            return block.record[i];
+        }
+    }
+    //If we reach this point then there was an error or the record was deleted from the primary index.
+
+    Record record;
+    record.id = DELETED_RECORD_ID;
+    return record;      //We return a record with a DELETED_RECORD_ID
+
+};
+
 
 int HashStatistics(char* filename){
 

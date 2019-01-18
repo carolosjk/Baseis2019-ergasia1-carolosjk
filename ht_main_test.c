@@ -203,98 +203,98 @@ int main(char argc,char** argv)
 	Secondary index part.
 	*/
 	/*
-//	C8: Create/Open secondary index.
-//	*/
-//	printf("@Checkpoint 8: Create Secondary/ Open Index\n");
-//	int createErrorCode=SHT_CreateSecondaryIndex(sfileName,sAttrName,sAttrLength,sBuckets,fileName);
-//	if (createErrorCode<0)
-//	{
-//		printf("Checkpoint Result 8: FAILED\n");
-//		return -1;
-//	}
-//	SHT_info* shi=SHT_OpenSecondaryIndex(sfileName);
-//	if(shi!=NULL)
-//	{
-//		printf("Checkpoint Result 8 SUCCESS\n");
-//	}
-//	else
-//	{
-//		printf("Checkpoint Result 8: FAIL\n");
-//	}
-//	/*
-//	Secondary index insert records.
-//	*/
-//	/*
-//	C9: Insert entries to both indexes.
-//	*/
-//	printf("@Checkpoint 9: Insert Records Secondary\n");
-//	int ch9=0;
-//	for (int i=testRecordsNumber;i<testRecordsNumber*2;i++)
-//	{
-//		Record record;
-//		record.id=i;
-//		sprintf(record.name,"name_%d",i);
-//		sprintf(record.surname,"surname_%d",i);
-//		sprintf(record.address,"address_%d",i);
-//		/*
-//		We need to do two inserts:
-//			* One in the HT.
-//			* One in the SHT.
-//		*/
-//		int blockId=HT_InsertEntry(*hi,record);
-//		if (blockId>0)
-//		{
-//			SecondaryRecord sRecord;
-//			sRecord.record=record;
-//			sRecord.blockId=blockId;
-//			int sInsertError=SHT_SecondaryInsertEntry(*shi,sRecord);
-//			if(sInsertError<0)
-//			{
-//				ch9+=1;
-//			}
-//		}
-//	}
-//	if (ch9==0)
-//	{
-//		printf("Checkpoint Result 9: SUCCESS\n");
-//	}
-//	else
-//	{
-//		printf("Checkpoint Result 10: Fail\n");
-//	}
-//	/*
-//	C10: Get all entries using secondary the  index.
-//	*/
-//	printf("@Checkpoint 10: SHT Get all entries (All should exist except the deleted)\n");
-//	int ch10=0;
-//	for (int i=0;i<testRecordsNumber*2;i++)
-//	{
-//		Record record;
-//		record.id=i;
-//		sprintf(record.name,"name_%d",i);
-//		sprintf(record.surname,"surname_%d",i);
-//		sprintf(record.address,"address_%d",i);
-//		int err=SHT_SecondaryGetAllEntries(*shi,*hi,(void*)record.name);
-//		if (err<0)
-//		{
-//			ch10+=1;
-//		}
-//	}
-//	if(ch10>deletesTest)
-//	{
-//		/*
-//		If more than the deleted do not exist the test failed.
-//		*/
-//		printf("Checkpoint Result 10: FAIL\n");
-//	}
-//	else
-//	{
-//		printf("Checkpoint Result 10: SUCCESS\n");
-//	}
+	C8: Create/Open secondary index.
+	*/
+	printf("@Checkpoint 8: Create Secondary/ Open Index\n");
+	int createErrorCode=SHT_CreateSecondaryIndex(sfileName,sAttrName,sAttrLength,sBuckets,fileName);
+	if (createErrorCode<0)
+	{
+		printf("Checkpoint Result 8: FAILED\n");
+		return -1;
+	}
+	SHT_info* shi=SHT_OpenSecondaryIndex(sfileName);
+	if(shi!=NULL)
+	{
+		printf("Checkpoint Result 8 SUCCESS\n");
+	}
+	else
+	{
+		printf("Checkpoint Result 8: FAIL\n");
+	}
+	/*
+	Secondary index insert records.
+	*/
+	/*
+	C9: Insert entries to both indexes.
+	*/
+	printf("@Checkpoint 9: Insert Records Secondary\n");
+	int ch9=0;
+	for (int i=testRecordsNumber;i<testRecordsNumber*2;i++)
+	{
+		Record record;
+		record.id=i;
+		sprintf(record.name,"name_%d",i);
+		sprintf(record.surname,"surname_%d",i);
+		sprintf(record.address,"address_%d",i);
+		/*
+		We need to do two inserts:
+			* One in the HT.
+			* One in the SHT.
+		*/
+		int blockId=HT_InsertEntry(*hi,record);
+		if (blockId>0)
+		{
+			SecondaryRecord sRecord;
+			sRecord.record=record;
+			sRecord.blockId=blockId;
+			int sInsertError=SHT_SecondaryInsertEntry(*shi,sRecord);
+			if(sInsertError<0)
+			{
+				ch9+=1;
+			}
+		}
+	}
+	if (ch9==0)
+	{
+		printf("Checkpoint Result 9: SUCCESS\n");
+	}
+	else
+	{
+		printf("Checkpoint Result 10: Fail\n");
+	}
+	/*
+	C10: Get all entries using secondary the  index.
+	*/
+	printf("@Checkpoint 10: SHT Get all entries (All should exist except the deleted)\n");
+	int ch10=0;
+	for (int i=0;i<testRecordsNumber*2;i++)
+	{
+		Record record;
+		record.id=i;
+		sprintf(record.name,"name_%d",i);
+		sprintf(record.surname,"surname_%d",i);
+		sprintf(record.address,"address_%d",i);
+		int err=SHT_SecondaryGetAllEntries(*shi,*hi,(void*)record.name);
+		if (err<0)
+		{
+			ch10+=1;
+		}
+	}
+	if(ch10>deletesTest)
+	{
+		/*
+		If more than the deleted do not exist the test failed.
+		*/
+		printf("Checkpoint Result 10: FAIL\n");
+	}
+	else
+	{
+		printf("Checkpoint Result 10: SUCCESS\n");
+	}
 	printf("@Checkpoint 11\n");
 	int htCloseError=HT_CloseIndex(hi);
-//	int shtCloseError=SHT_CloseSecondaryIndex(shi);
-	if (htCloseError==0 /* && shtCloseError==0 */)
+	int shtCloseError=SHT_CloseSecondaryIndex(shi);
+	if (htCloseError==0  && shtCloseError==0 )
 	{
 		printf("Checkpoint Result 11: SUCCESS\n");
 	}
@@ -307,7 +307,7 @@ int main(char argc,char** argv)
 	*/
 	printf("Statistics:HT\n");
 	HashStatistics(fileName);
-//	printf("Statistics:SHT\n");
-//	HashStatistics(sfileName);
+	printf("Statistics:SHT\n");
+	HashStatistics(sfileName);
 	return 0;
 }   
