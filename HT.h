@@ -211,7 +211,9 @@ int HT_CloseIndex(HT_info* header_info){
 
 int HT_InsertEntry(HT_info header_info, Record record){
 
-    int bucket = hash_int(record.id,header_info.numBuckets);
+    int bucket = hash_int(record.id,header_info.numBuckets);    // The bucket in which the record must be insterted
+//    printf("%d\n",bucket);
+    int blockId;        // The id of the block in which the record was inserted
     int hash_table[header_info.numBuckets];
 
     void* blockData0 = malloc(BLOCK_SIZE);
@@ -228,7 +230,7 @@ int HT_InsertEntry(HT_info header_info, Record record){
     if(hash_table[bucket] == -1){
 
         int newBlockId = createNewBlock(header_info.fileDesc);
-        printf("%d\n",newBlockId);
+//        printf("%d\n",newBlockId);
         if (newBlockId < 0 ){
             BF_PrintError("Error with BF_GetBlockCounter\n");
             return -1;
@@ -247,10 +249,60 @@ int HT_InsertEntry(HT_info header_info, Record record){
     void* blockData = malloc(BLOCK_SIZE);
 
     //Reading the first block of the bucket.
-    if (BF_ReadBlock(header_info.fileDesc,0, &blockData0) < 0){
+    if (BF_ReadBlock(header_info.fileDesc,hash_table[bucket], &blockData) < 0){
         BF_PrintError("Error with BF_ReadBlock\n");
         return -1;
     }
+    blockId = hash_table[bucket];
+    memcpy(&block, blockData, sizeof(Block));
+
+    while(block.counter == MAX_RECORDS){    //Block is full of Records, we move to the next one.
+        if(block.nextBlock == -1){  //There is no next block
+            int newBlockId = createNewBlock(header_info.fileDesc);  //Creating new block
+//            printf("%d\n",newBlockId);
+            if (newBlockId < 0 ){
+                BF_PrintError("Error with BF_GetBlockCounter\n");
+                return -1;
+            }
+            block.nextBlock = newBlockId;     // Setting the nextBlock pointer to the id of the new block created
+            memcpy(blockData, &block, sizeof(Block));       //Turning the current block to byteArray
+
+            if(BF_WriteBlock(header_info.fileDesc, 0) < 0){     //Writing the current block back to the file
+
+                BF_PrintError("Error with write\n");
+                return -1;
+            }
+
+            if (BF_ReadBlock(header_info.fileDesc,newBlockId, &blockData) < 0){     //Reading the newly created block
+                BF_PrintError("Error with BF_ReadBlock\n");
+                return -1;
+            }
+            memcpy(&block, blockData, sizeof(Block));
+            blockId = newBlockId;
+
+        }else{   // block.nextBlock != -1
+            blockId = block.nextBlock;
+             if (BF_ReadBlock(header_info.fileDesc,block.nextBlock, &blockData) < 0){
+                BF_PrintError("Error with BF_ReadBlock\n");
+                return -1;
+            }
+            memcpy(&block, blockData, sizeof(Block));
+        }
+
+    }       //while(block.counter == MAX_RECORDS)...end
+
+    block.record[block.counter] = record;       // Inserting the new record to the block
+    block.counter++;
+
+    memcpy(blockData, &block, sizeof(Block));       //Turning the block to byteArray
+
+    if(BF_WriteBlock(header_info.fileDesc, 0) < 0){     //Writing the block back to the file
+
+        BF_PrintError("Error with write\n");
+        return -1;
+    }
+//    printf("%d\n",blockId);
+    return blockId;
 
 };
 
