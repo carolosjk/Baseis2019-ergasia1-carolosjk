@@ -9,7 +9,8 @@
 
 #define MAX_RECORDS 6
 #define BUCKETS 10
-#define  INITIAL_VALUE 5381
+#define INITIAL_VALUE 5381
+#define DELETED_RECORD_ID -99999
 
 #include <string.h>
 #include <stdlib.h>
@@ -37,6 +38,18 @@ typedef struct{
     char address[40];
 }Record;
 
+//void printRecordInfo(Record record){
+//    printf("Record:\n");
+//    printf("Id: %d\n", record.id);
+//    printf("Name: %s\n", record.name);
+//    printf("Surname: %s\n",record.surname);
+//    printf("Address: %s\n", record.address);
+//}
+
+void printRecordInfo(Record record){
+    printf("Record: (%d, %s, %s, %s)\n",record.id,record.name,record.surname,record.address);
+}
+
 typedef struct{
     int counter;        //Number of records in the block
     Record record[MAX_RECORDS];       //An array of records
@@ -60,15 +73,7 @@ typedef struct{     //The first block in the file.
     int hash_table[BUCKETS];
 } Block0;
 
-unsigned char* blockToByteArray(Block block){
 
-    unsigned char* byteArray = malloc(BLOCK_SIZE);
-    byteArray[0] = 1;
-    byteArray[1] = block.counter;
-    for(int i=0; i < block.counter;i++){
-        memcpy(&(byteArray[2+i* sizeof(Record)]),&(block.record[i]), sizeof(Record));
-    }
-}
 
 int createNewBlock(const int fileDesc){     //Returns the new block id or -1 upon failure
 
@@ -267,7 +272,7 @@ int HT_InsertEntry(HT_info header_info, Record record){
             block.nextBlock = newBlockId;     // Setting the nextBlock pointer to the id of the new block created
             memcpy(blockData, &block, sizeof(Block));       //Turning the current block to byteArray
 
-            if(BF_WriteBlock(header_info.fileDesc, 0) < 0){     //Writing the current block back to the file
+            if(BF_WriteBlock(header_info.fileDesc, blockId) < 0){     //Writing the current block back to the file
 
                 BF_PrintError("Error with write\n");
                 return -1;
@@ -296,7 +301,7 @@ int HT_InsertEntry(HT_info header_info, Record record){
 
     memcpy(blockData, &block, sizeof(Block));       //Turning the block to byteArray
 
-    if(BF_WriteBlock(header_info.fileDesc, 0) < 0){     //Writing the block back to the file
+    if(BF_WriteBlock(header_info.fileDesc, blockId) < 0){     //Writing the block back to the file
 
         BF_PrintError("Error with write\n");
         return -1;
@@ -306,8 +311,101 @@ int HT_InsertEntry(HT_info header_info, Record record){
 
 };
 
-int HT_DeleteEntry(HT_info header_info, void* value){};
+int HT_DeleteEntry(HT_info header_info, void* value){
 
-int HT_GetAllEntries(HT_info header_info, void* value){};
+    int key = *((int*) value);
+    int bucket = hash_int(key,header_info.numBuckets);    // The bucket in which we'll search for the record
+//    printf("%d\n",bucket);
+    int hash_table[header_info.numBuckets];
+
+    void* blockData = malloc(BLOCK_SIZE);
+
+    if (BF_ReadBlock(header_info.fileDesc,0, &blockData) < 0){
+        BF_PrintError("Error with BF_ReadBlock\n");
+        return -1;
+    }
+    int nameSize = strlen(header_info.attrName) + 1;
+    memcpy(&hash_table[0] ,  blockData + sizeof(int) + sizeof(char) + nameSize + sizeof(long int),sizeof(hash_table));
+
+    Block block;
+
+    if (hash_table[bucket] == -1) return -1; // No blocks in the bucket
+
+    int nextBlock = hash_table[bucket];
+    int found = -1;
+    while(nextBlock != -1 && found == -1) {
+        //Reading a block
+        if (BF_ReadBlock(header_info.fileDesc, nextBlock, &blockData) < 0) {
+            BF_PrintError("Error with BF_ReadBlock\n");
+            return -1;
+        }
+        memcpy(&block, blockData, sizeof(Block));
+
+        //Searching for the record in the block.
+        for(int i =0; i< block.counter; i++){
+
+            if(block.record[i].id == key){      //Found the correct record
+                block.record[i].id = DELETED_RECORD_ID;
+                found = 0;
+                memcpy(blockData, &block, sizeof(Block));
+
+                if(BF_WriteBlock(header_info.fileDesc, nextBlock) < 0){     //Writing the block back to the file
+
+                    BF_PrintError("Error with write\n");
+                    return -1;
+                }
+                break;
+            }
+        }
+        nextBlock = block.nextBlock;
+    }
+    return found;
+
+};
+
+int HT_GetAllEntries(HT_info header_info, void* value){
+
+    int key = *((int*) value);
+    int bucket = hash_int(key,header_info.numBuckets);    // The bucket in which we'll search for the record
+    int hash_table[header_info.numBuckets];
+
+    void* blockData = malloc(BLOCK_SIZE);
+
+    if (BF_ReadBlock(header_info.fileDesc,0, &blockData) < 0){
+        BF_PrintError("Error with BF_ReadBlock\n");
+        return -1;
+    }
+    int nameSize = strlen(header_info.attrName) + 1;
+    memcpy(&hash_table[0] ,  blockData + sizeof(int) + sizeof(char) + nameSize + sizeof(long int),sizeof(hash_table));
+
+    Block block;
+
+    if (hash_table[bucket] == -1) return -1; // No blocks in the bucket
+
+    int nextBlock = hash_table[bucket];
+    int blocksRead = 0;
+    int foundAtLeastOneRecord = -1;     //A value to check if at least one record with the correct key was found
+    while(nextBlock != -1) {
+        //Reading a block
+        if (BF_ReadBlock(header_info.fileDesc, nextBlock, &blockData) < 0) {
+            BF_PrintError("Error with BF_ReadBlock\n");
+            return -1;
+        }
+        blocksRead++;   //Increasing the blocksRead counter
+        memcpy(&block, blockData, sizeof(Block));
+
+        //Searching for a record with the correct key.
+        for (int i = 0; i < block.counter; i++) {
+            if (block.record[i].id == key) {      //Found a record with the correct key value.
+                printRecordInfo(block.record[i]);
+                foundAtLeastOneRecord = 0;
+            }
+        }
+        nextBlock = block.nextBlock;
+    }
+    if(foundAtLeastOneRecord == 0) return blocksRead;
+    else return -1;
+
+};
 
 #endif /*BF_HT_H*/

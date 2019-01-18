@@ -72,8 +72,6 @@ int main(char argc,char** argv)
 	*/
 	printf("@Checkpoint 2: Open Index\n");
 	hi=HT_OpenIndex(fileName);
-//	printf("%c\n",hi->attrType);
-//	printf("%c%c%c%c\n",hi->attrName[0],hi->attrName[1],hi->attrName[2],hi->attrName[3]);
 	if(hi!=NULL && hi->attrType==attrType && strcmp(hi->attrName,attrName)==0)
 	{
 		printf("Checkpoint Result 2: SUCCESS\n");
@@ -94,6 +92,7 @@ int main(char argc,char** argv)
 		sprintf(record.surname,"surname_%d",i);
 		sprintf(record.address,"address_%d",i);
 		HT_InsertEntry(*hi,record);
+//		printRecordInfo(record);
 	}
 	/*
 	C4: Get all entries.
