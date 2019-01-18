@@ -292,18 +292,18 @@ int main(char argc,char** argv)
 //	{
 //		printf("Checkpoint Result 10: SUCCESS\n");
 //	}
-//	printf("@Checkpoint 11\n");
-//	int htCloseError=HT_CloseIndex(hi);
+	printf("@Checkpoint 11\n");
+	int htCloseError=HT_CloseIndex(hi);
 //	int shtCloseError=SHT_CloseSecondaryIndex(shi);
-//	if (htCloseError==0 && shtCloseError==0)
-//	{
-//		printf("Checkpoint Result 11: SUCCESS\n");
-//	}
-//	else
-//	{
-//		printf("Checkpoint Result 11: FAIL\n");
-//	}
-//	/*
+	if (htCloseError==0 /* && shtCloseError==0 */)
+	{
+		printf("Checkpoint Result 11: SUCCESS\n");
+	}
+	else
+	{
+		printf("Checkpoint Result 11: FAIL\n");
+	}
+	/*
 //	Hash statistics.
 //	*/
 //	printf("Statistics:HT\n");
