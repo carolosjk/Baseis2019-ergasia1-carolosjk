@@ -70,6 +70,9 @@ int createNewSecondaryBlock(const int fileDesc){     //Returns the new block id 
     return  number - 1;
 }
 
+int SHT_SecondaryInsertEntry(SHT_info header_info, SecondaryRecord record);
+int SHT_CloseSecondaryIndex(SHT_info* header_info);
+SHT_info* SHT_OpenSecondaryIndex(char* sfileName);
 
 int SHT_CreateSecondaryIndex(char* sfileName, char* attrName, int attrLength, int buckets, char* fileName){
 
@@ -126,15 +129,69 @@ int SHT_CreateSecondaryIndex(char* sfileName, char* attrName, int attrLength, in
         return -1;
     }
 
-    //Now we must synchronise the secondary index with the primary index.
-
-
-
     if(BF_CloseFile(fileDesc) < 0){
 
         BF_PrintError("Error with closing file\n");
         return -1;
     }
+
+    //Now we must synchronise the secondary index with the primary index.
+
+    //First Opening the secondary index
+    SHT_info* sht_info = malloc(sizeof(SHT_info));
+    sht_info = SHT_OpenSecondaryIndex(sfileName);
+    if(sht_info == NULL){
+        printf("Error with SHT_OpenSecondaryIndex\n");
+        return -1;
+    }
+
+    //Now opening the primary index
+    HT_info* info = malloc(sizeof(HT_info));
+    info = HT_OpenIndex(fileName);
+    if (info == NULL){
+        printf("Error with HT_OpenIndex\n");
+        return -1;
+    }
+
+    //Getting the hash_table from the primary index
+    void* blockData_ht = malloc(BLOCK_SIZE);
+    int hash_table[info->numBuckets];
+    if (BF_ReadBlock(info->fileDesc,0, &blockData_ht) < 0){
+        BF_PrintError("Error with BF_ReadBlock\n");
+        return -1;
+    }
+    int nameSize_ht = strlen(info->attrName) + 1;
+    memcpy(&hash_table[0] ,  blockData_ht + sizeof(int) + sizeof(char) + nameSize_ht + sizeof(long int),sizeof(hash_table));
+
+    Block block;
+    //We test all blocks in each buckets if they have records in them to insert to the secondary Index
+    for(int i =0; i<info->numBuckets; i++) {
+        int nextBlock = hash_table[i];
+        while (nextBlock != -1) {
+            //Reading a block
+            if (BF_ReadBlock(info->fileDesc, nextBlock, &blockData_ht) < 0) {
+                BF_PrintError("Error with BF_ReadBlock\n");
+                return -1;
+            }
+            memcpy(&block, blockData_ht, sizeof(Block));
+
+            //Searching for not-deleted records.
+            for (int j = 0; j < block.counter; j++) {
+                if (block.record[j].id != DELETED_RECORD_ID) {      //Record is not deleted
+                    SecondaryRecord sRecord;
+                    sRecord.blockId = nextBlock;
+                    sRecord.record = block.record[j];
+                    SHT_SecondaryInsertEntry(*sht_info, sRecord);
+                }
+            }
+            nextBlock = block.nextBlock;
+        }
+    }
+    if (SHT_CloseSecondaryIndex(sht_info) < 0){
+        printf("Eroor with Closing 2nd index\n");
+        return -1;
+    };
+
     return 0;
 
 }
@@ -338,8 +395,6 @@ int SHT_SecondaryGetAllEntries(SHT_info header_info_sht, HT_info header_info_ht,
     else return -1;
 
 };
-
-
 
 
 #endif //SHT_H

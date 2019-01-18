@@ -4,8 +4,8 @@
 
 
 
-#ifndef BF_HT_H
-#define BF_HT_H
+#ifndef BF_HT_H_
+#define BF_HT_H_
 
 #define MAX_RECORDS 6
 #define BUCKETS 10
@@ -481,8 +481,8 @@ int HashStatistics(char* filename){
             blocksInBucket++;   //Increasing
 
             //Searching for not-deleted records.
-            for (int i = 0; i < block.counter; i++) {
-                if (block.record[i].id != DELETED_RECORD_ID) {      //Record is not deleted
+            for (int j = 0; j < block.counter; j++) {
+                if (block.record[j].id != DELETED_RECORD_ID) {      //Record is not deleted
                     recordsInBucket++;
                 }
             }
