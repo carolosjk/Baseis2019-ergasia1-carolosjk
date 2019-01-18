@@ -21,8 +21,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdlib.h>
-#include "BF.h"
-#include "HT.h"
+#include "SHT.h"
 
 
 
@@ -201,9 +200,9 @@ int main(char argc,char** argv)
 		printf("Checkpoint Result 7: SUCCESS\n");
 	}
 	/*
-//	Secondary index part.
-//	*/
-//	/*
+	Secondary index part.
+	*/
+	/*
 //	C8: Create/Open secondary index.
 //	*/
 //	printf("@Checkpoint 8: Create Secondary/ Open Index\n");
@@ -304,10 +303,10 @@ int main(char argc,char** argv)
 		printf("Checkpoint Result 11: FAIL\n");
 	}
 	/*
-//	Hash statistics.
-//	*/
-//	printf("Statistics:HT\n");
-//	HashStatistics(fileName);
+	Hash statistics.
+	*/
+	printf("Statistics:HT\n");
+	HashStatistics(fileName);
 //	printf("Statistics:SHT\n");
 //	HashStatistics(sfileName);
 	return 0;
