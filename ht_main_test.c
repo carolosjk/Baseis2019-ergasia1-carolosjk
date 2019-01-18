@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <stdlib.h>
 #include "SHT.h"
+#include "HashStatistics.h"
 
 
 
@@ -307,7 +308,8 @@ int main(char argc,char** argv)
 	*/
 	printf("Statistics:HT\n");
 	HashStatistics(fileName);
-//	printf("Statistics:SHT\n");
-//	HashStatistics(sfileName);
+	printf("Statistics:SHT\n");
+	HashStatistics(sfileName);
 	return 0;
-}   
+}
+

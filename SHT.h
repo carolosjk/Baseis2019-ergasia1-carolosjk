@@ -7,6 +7,8 @@
 
 #include "HT.h"
 
+#define DELETED_RECORD_NAME "deletedRec"
+
 typedef struct{
     int fileDesc;
     char* attrName;
