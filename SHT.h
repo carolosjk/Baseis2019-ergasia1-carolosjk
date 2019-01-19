@@ -39,7 +39,7 @@ typedef struct{     //The first block in the file.
     int attrLength;
     long int numBuckets;
     char* fileName;
-    int hash_table[BUCKETS];
+    int hash_table[MAX_BUCKETS];
 } SecondaryBlock0;
 
 int createNewSecondaryBlock(const int fileDesc){     //Returns the new block id or -1 upon failure

@@ -8,7 +8,7 @@
 #define BF_HT_H_
 
 #define MAX_RECORDS 6
-#define BUCKETS 10
+#define MAX_BUCKETS 100
 #define INITIAL_VALUE 5381
 #define DELETED_RECORD_ID -99999
 
@@ -71,7 +71,7 @@ typedef struct{     //The first block in the file.
     char* attrName;
     int attrLength;
     long int numBuckets;
-    int hash_table[BUCKETS];
+    int hash_table[MAX_BUCKETS];
 } Block0;
 
 
@@ -145,7 +145,6 @@ int HT_CreateIndex(char* fileName, char attrType, char* attrName, int attrLength
 
     memcpy(blockData, &(block0.attrType), sizeof(char));
     int nameSize = strlen(block0.attrName)+1;  // attrName size
-    printf("%d\n",nameSize);
     memcpy(blockData + sizeof(char), block0.attrName, nameSize);
     memcpy(blockData + sizeof(char) + nameSize, &(block0.attrLength), sizeof(int));
     memcpy(blockData + sizeof(char) + sizeof(int) + nameSize, &(block0.numBuckets), sizeof(long int));
