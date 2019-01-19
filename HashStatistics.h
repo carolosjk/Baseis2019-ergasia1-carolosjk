@@ -1,5 +1,6 @@
 //
-// Created by carolosjk on 18/1/2019.
+//  Full Name:  Giampouonka Kanellakos Karolow
+//  AM:         1115201600030
 //
 
 #ifndef BASEIS2019_ERGASIA1_CAROLOSJK_HASHSTATISTICS_H

@@ -1,5 +1,6 @@
 //
-// Created by carolosjk on 18/1/2019.
+//  Full Name:  Giampouonka Kanellakos Karolow
+//  AM:         1115201600030
 //
 
 #include <stdio.h>
@@ -8,7 +9,7 @@
 #include <stdlib.h>
 #include "SHT.h"
 #include "HashStatistics.h"
-#include <unistd.h>
+
 
 
 int main(char argc,char** argv) {

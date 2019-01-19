@@ -1,8 +1,7 @@
 //
-// Created by karolos on 13/1/2019.
+//  Full Name:  Giampouonka Kanellakos Karolow
+//  AM:         1115201600030
 //
-
-
 
 #ifndef BF_HT_H_
 #define BF_HT_H_
