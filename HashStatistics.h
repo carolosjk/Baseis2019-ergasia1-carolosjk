@@ -1,6 +1,6 @@
 //
-//  Full Name:  Giampouonka Kanellakos Karolow
-//  AM:         1115201600030
+//  Full Name:  Giampouonka Kanellakos Karolos      Georgos Charalampidis
+//  AM:         1115201600030                       1115201600193
 //
 
 #ifndef BASEIS2019_ERGASIA1_CAROLOSJK_HASHSTATISTICS_H
@@ -53,7 +53,7 @@ int HashStatisticsSHT(char* filename){
 
             //Searching for not-deleted records.
             for (int j = 0; j < block.counter; j++) {
-                if (strcmp(block.record[j].name, DELETED_RECORD_NAME)!=0) {      //Record is not deleted
+                if (strcmp(block.record[j].attribute, DELETED_RECORD_SHT)!=0) {      //Record is not deleted
                     recordsInBucket++;
                 }
             }
@@ -140,7 +140,7 @@ int HashStatisticsHT(char* filename){
         if(blocksInBucket != 0) {
             printf("Bucket %d has %d overflow Blocks\n", i+1, blocksInBucket-1);
         }
-        else printf("Bucket %d has 0 overflow Blocks\n", i);
+        else printf("Bucket %d has 0 overflow Blocks\n", i+1);
     }
     printf("Buckets that have at least one overflow block: %d\n",bucketsWithOverflowBlocks);
     printf("Total blocks in the file: %d\n", numberOfBlocks);

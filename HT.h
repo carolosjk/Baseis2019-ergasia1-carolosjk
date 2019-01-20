@@ -1,13 +1,13 @@
 //
-//  Full Name:  Giampouonka Kanellakos Karolow
-//  AM:         1115201600030
+//  Full Name:  Giampouonka Kanellakos Karolos      Georgos Charalampidis
+//  AM:         1115201600030                       1115201600193
 //
 
 #ifndef BF_HT_H_
 #define BF_HT_H_
 
 #define MAX_RECORDS 6
-#define MAX_BUCKETS 100
+#define MAX_BUCKETS 120
 #define INITIAL_VALUE 5381
 #define DELETED_RECORD_ID -99999
 
@@ -19,7 +19,7 @@
 
 
 int hash_int(int x, long int buckets){
-    return ((3*x + 14544) % 78901) % buckets;
+    return ((29*x + 14549) % 78901) % buckets;
 }
 
 int hash_char(char* x, long int buckets){
@@ -81,7 +81,7 @@ int createNewBlock(const int fileDesc){     //Returns the new block id or -1 upo
     newBlock.counter = 0;
     newBlock.nextBlock = -1;
 
-    if (BF_AllocateBlock(fileDesc) < 0){
+    if (BF_AllocateBlock(fileDesc) < 0){        //Allocating a new block
         BF_PrintError("Error with BF_AllocateBlock\n");
         return -1;
     }
@@ -108,12 +108,12 @@ int createNewBlock(const int fileDesc){     //Returns the new block id or -1 upo
 int HT_CreateIndex(char* fileName, char attrType, char* attrName, int attrLength, int buckets){
 
     int number;
-    number = BF_CreateFile(fileName);
+    number = BF_CreateFile(fileName);       // Creating the file
     if (number < 0) {
         BF_PrintError("Error with BF_CreateFile\n");
         return -1;
     }
-    int fileDesc = BF_OpenFile(fileName);
+    int fileDesc = BF_OpenFile(fileName);       // Opening the file
     if (fileDesc < 0) {
         BF_PrintError("Error with BF_OpenFile\n");
         return -1;
@@ -122,14 +122,13 @@ int HT_CreateIndex(char* fileName, char attrType, char* attrName, int attrLength
 
     Block0 block0;
 
-
     block0.attrLength = attrLength;
     block0.attrName =  malloc(strlen(attrName)+1);
     strcpy(block0.attrName,attrName);
     block0.attrType = attrType;
     block0.numBuckets = buckets;
 
-    if (BF_AllocateBlock(fileDesc) < 0){
+    if (BF_AllocateBlock(fileDesc) < 0){        //Allocating size for our first block
         BF_PrintError("Error with BF_AllocateBlock\n");
         return -1;
     }
@@ -137,28 +136,30 @@ int HT_CreateIndex(char* fileName, char attrType, char* attrName, int attrLength
     void* blockData = malloc(BLOCK_SIZE);
 
 
-    if (BF_ReadBlock(fileDesc,0, &blockData) < 0){
+    if (BF_ReadBlock(fileDesc,0, &blockData) < 0){      //Reading block 0
         BF_PrintError("Error with BF_ReadBlock\n");
         return -1;
     }
 
+    //Writing the information we need to blockData
     memcpy(blockData, &(block0.attrType), sizeof(char));
     int nameSize = strlen(block0.attrName)+1;  // attrName size
     memcpy(blockData + sizeof(char), block0.attrName, nameSize);
     memcpy(blockData + sizeof(char) + nameSize, &(block0.attrLength), sizeof(int));
     memcpy(blockData + sizeof(char) + sizeof(int) + nameSize, &(block0.numBuckets), sizeof(long int));
 
+    //Initialising the hash table with -1 indicating that each buck contains no block.
     for (int i =0; i<block0.numBuckets; i++) block0.hash_table[i] = -1;
     memcpy(blockData + sizeof(char) + sizeof(int) + sizeof(long int) + nameSize,&(block0.hash_table),
             sizeof(block0.hash_table));
 
-    if(BF_WriteBlock(fileDesc, 0) < 0){
+    if(BF_WriteBlock(fileDesc, 0) < 0){     //Writing the blockData back to the block.
 
         BF_PrintError("Error with write\n");
         return -1;
     }
 
-    if(BF_CloseFile(fileDesc) < 0){
+    if(BF_CloseFile(fileDesc) < 0){        //Closing the file
 
         BF_PrintError("Error with closing file\n");
         return -1;
@@ -178,7 +179,7 @@ HT_info* HT_OpenIndex(char* fileName){
     HT_info* info = malloc(sizeof(HT_info));
     void* blockData = malloc(BLOCK_SIZE);
 
-
+    //Reading the information we need from block 0 and assigning it to the HT_info pointer
     if (BF_ReadBlock(fileDesc,0,&blockData) < 0){
         BF_PrintError("Error with BF_ReadBlock\n");
         return NULL;
@@ -191,22 +192,17 @@ HT_info* HT_OpenIndex(char* fileName){
     memcpy(&(info->attrLength) ,  blockData + sizeof(char) + nameSize , sizeof(int));
     memcpy(&(info->numBuckets) ,  blockData + sizeof(int) + sizeof(char) + nameSize, sizeof(long int));
 
-//    if(BF_CloseFile(fileDesc) < 0){
-//
-//        BF_PrintError("Error with closing file\n");
-//        return NULL;
-//    }
 
     return info;
 };
 
 int HT_CloseIndex(HT_info* header_info){
 
-    if(BF_CloseFile(header_info->fileDesc) < 0){
+    if(BF_CloseFile(header_info->fileDesc) < 0){    //Closing the file
         BF_PrintError("Error with closing file\n");
         return -1;
     }
-    free(header_info);
+    free(header_info);      //Freeing the HT_info pointer
     return 0;
 
 };
@@ -214,7 +210,6 @@ int HT_CloseIndex(HT_info* header_info){
 int HT_InsertEntry(HT_info header_info, Record record){
 
     int bucket = hash_int(record.id,header_info.numBuckets);    // The bucket in which the record must be inserted
-//    printf("%d\n",bucket);
     int blockId;        // The id of the block in which the record was inserted
     int hash_table[header_info.numBuckets];
 
@@ -380,7 +375,7 @@ int HT_GetAllEntries(HT_info header_info, void* value){
     if (hash_table[bucket] == -1) return -1; // No blocks in the bucket
 
     int nextBlock = hash_table[bucket];
-    int blocksRead = 0;
+    int blocksRead = 1;     //We have already read block 0
     int foundAtLeastOneRecord = -1;     //A value to check if at least one record with the correct key was found
     while(nextBlock != -1) {
         //Reading a block

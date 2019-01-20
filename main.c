@@ -1,6 +1,6 @@
 //
-//  Full Name:  Giampouonka Kanellakos Karolow
-//  AM:         1115201600030
+//  Full Name:  Giampouonka Kanellakos Karolos      Georgos Charalampidis
+//  AM:         1115201600030                       1115201600193
 //
 
 #include <stdio.h>
@@ -24,11 +24,11 @@ int main(char argc,char** argv) {
     char attrType = 'i';
     char *attrName = "id";
     int attrLength = 4;
-    int buckets = 20;
+    int buckets = 25;
     char *sfileName = "sht_file";
     char *sAttrName = "name";
     int sAttrLength = 15;
-    int sBuckets = 10;
+    int sBuckets = 20;
 
     //Creating primary index
     if (HT_CreateIndex(fileName,attrType,attrName,attrLength,buckets) == -1){
@@ -102,11 +102,33 @@ int main(char argc,char** argv) {
     //Searching for records with name ending in 26  up to 10000(i.e. name_26, name_126, ... , name_1326)
 
     char* name = malloc(20);
-    for (int i = 26; i < 10000; i += 100){
+    for (int i = 26; i < 10001; i += 100){
+        sprintf(name,"name_%d",i);
+        SHT_SecondaryGetAllEntries(*sInfo, *info, (void*) name);
+    }
+
+    // Deleting all records with id from 0 to 150
+
+    for (int i = 0; i < 151; i++){
+        int deleteError = HT_DeleteEntry(*info,(void*)&i);
+        if (deleteError != 0){
+            printf("Error when deleting record with id %d\n",i);
+        }
+    }
+
+    //Searching for records with id from 0 to 250
+    for (int i = 0; i < 251; i ++){
+        HT_GetAllEntries(*info, (void*) &i);
+    }
+
+    //Searching for records with name from name_100 to name_200
+
+    for (int i = 100; i < 201; i ++){
         sprintf(name,"name_%d",i);
         SHT_SecondaryGetAllEntries(*sInfo, *info, (void*) name);
     }
     free(name);
+
 
     //Closing the indexes
     int htCloseError = HT_CloseIndex(info);

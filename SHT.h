@@ -1,6 +1,6 @@
 //
-//  Full Name:  Giampouonka Kanellakos Karolow
-//  AM:         1115201600030
+//  Full Name:  Giampouonka Kanellakos Karolos      Georgos Charalampidis
+//  AM:         1115201600030                       1115201600193
 //
 
 #ifndef SHT_H
@@ -8,7 +8,7 @@
 
 #include "HT.h"
 
-#define DELETED_RECORD_NAME "deletedRec"
+#define DELETED_RECORD_SHT "deletedRec"
 
 typedef struct{
     int fileDesc;
@@ -25,7 +25,7 @@ typedef struct{
 
 typedef struct{     //A cut down version of SecondaryRecord that needs less space at the disk.
     int id;
-    char name[15];
+    char attribute[40];
     int blockId;
 }MinimalSecondaryRecord;
 
@@ -80,12 +80,12 @@ SHT_info* SHT_OpenSecondaryIndex(char* sfileName);
 int SHT_CreateSecondaryIndex(char* sfileName, char* attrName, int attrLength, int buckets, char* fileName){
 
     int number;
-    number = BF_CreateFile(sfileName);
+    number = BF_CreateFile(sfileName);      //Creating a new file
     if (number < 0) {
         BF_PrintError("Error with BF_CreateFile\n");
         return -1;
     }
-    int fileDesc = BF_OpenFile(sfileName);
+    int fileDesc = BF_OpenFile(sfileName);      //Opening the file
     if (fileDesc < 0) {
         BF_PrintError("Error with BF_OpenFile\n");
         return -1;
@@ -94,6 +94,11 @@ int SHT_CreateSecondaryIndex(char* sfileName, char* attrName, int attrLength, in
 
     SecondaryBlock0 block0;
 
+    if( (strcmp(attrName,"name") != 0) && (strcmp(attrName,"surname") != 0) &&
+        (strcmp(attrName,"address") != 0)){
+        printf("Wrong attribute type\n");
+        return -1;
+    }
 
     block0.attrLength = attrLength;
     block0.attrName =  malloc(strlen(attrName)+1);
@@ -102,7 +107,7 @@ int SHT_CreateSecondaryIndex(char* sfileName, char* attrName, int attrLength, in
     block0.fileName =  malloc(strlen(fileName)+1);
     strcpy(block0.fileName,fileName);
 
-    if (BF_AllocateBlock(fileDesc) < 0){
+    if (BF_AllocateBlock(fileDesc) < 0){         //Allocating size for our first block
         BF_PrintError("Error with BF_AllocateBlock\n");
         return -1;
     }
@@ -110,11 +115,12 @@ int SHT_CreateSecondaryIndex(char* sfileName, char* attrName, int attrLength, in
     void* blockData = malloc(BLOCK_SIZE);
 
 
-    if (BF_ReadBlock(fileDesc,0, &blockData) < 0){
+    if (BF_ReadBlock(fileDesc,0, &blockData) < 0){      //Reading the block 0
         BF_PrintError("Error with BF_ReadBlock\n");
         return -1;
     }
 
+    //Writing the information we need to blockData
     int nameSize = strlen(block0.attrName)+1;  // attrName size
     memcpy(blockData , block0.attrName, nameSize);
     memcpy(blockData + nameSize, &(block0.attrLength), sizeof(int));
@@ -122,17 +128,18 @@ int SHT_CreateSecondaryIndex(char* sfileName, char* attrName, int attrLength, in
     int fileNameSize = strlen(block0.fileName)+1;  // fileName size
     memcpy(blockData + sizeof(int) + nameSize + sizeof(long int), fileName , fileNameSize);
 
+    //Initialising the hash table with -1 indicating that each buck contains no block.
     for (int i =0; i<block0.numBuckets; i++) block0.hash_table[i] = -1;
     memcpy(blockData + sizeof(int) + sizeof(long int) + nameSize + fileNameSize,
             &(block0.hash_table), sizeof(block0.hash_table));
 
-    if(BF_WriteBlock(fileDesc, 0) < 0){
+    if(BF_WriteBlock(fileDesc, 0) < 0){     //Writing the blockData back to the block
 
         BF_PrintError("Error with write\n");
         return -1;
     }
 
-    if(BF_CloseFile(fileDesc) < 0){
+    if(BF_CloseFile(fileDesc) < 0){     //Closing the file
 
         BF_PrintError("Error with closing file\n");
         return -1;
@@ -212,6 +219,7 @@ SHT_info* SHT_OpenSecondaryIndex(char* sfileName){
     void* blockData = malloc(BLOCK_SIZE);
 
 
+    //Reading the information we need from block 0 and assigning it to the HT_info pointer
     if (BF_ReadBlock(fileDesc,0,&blockData) < 0){
         BF_PrintError("Error with BF_ReadBlock\n");
         return NULL;
@@ -248,7 +256,16 @@ int SHT_CloseSecondaryIndex(SHT_info* header_info){
 
 int SHT_SecondaryInsertEntry(SHT_info header_info, SecondaryRecord record){
 
-    int bucket = hash_char(record.record.name,header_info.numBuckets);    // The bucket in which the record must be inserted
+    char attribute[40];
+    if(strcmp(header_info.attrName,"name") == 0) strcpy(attribute ,record.record.name);
+    else if(strcmp(header_info.attrName,"surname") == 0) strcpy(attribute , record.record.surname);
+    else if(strcmp(header_info.attrName,"address") == 0) strcpy(attribute , record.record.address);
+    else{
+        printf("Wrong attrName\n");
+        return -1;
+    }
+
+    int bucket = hash_char(attribute,header_info.numBuckets);    // The bucket in which the record must be inserted
     int hash_table[header_info.numBuckets];
 
     void* blockData0 = malloc(BLOCK_SIZE);
@@ -329,7 +346,7 @@ int SHT_SecondaryInsertEntry(SHT_info header_info, SecondaryRecord record){
     //Putting the into we need into a MinimalSecondaryRecord
     MinimalSecondaryRecord minimalRecord;
     minimalRecord.id = record.record.id;
-    strcpy(minimalRecord.name ,record.record.name);
+    strcpy(minimalRecord.attribute ,attribute);
     minimalRecord.blockId = record.blockId;
 
 
@@ -350,6 +367,7 @@ int SHT_SecondaryInsertEntry(SHT_info header_info, SecondaryRecord record){
 int SHT_SecondaryGetAllEntries(SHT_info header_info_sht, HT_info header_info_ht, void* value){
 
     char* key = (char*) value;
+    char attribute[40];
     int bucket = hash_char(key,header_info_sht.numBuckets);    // The bucket in which the record must be inserted
     int hash_table[header_info_sht.numBuckets];
 
@@ -368,7 +386,7 @@ int SHT_SecondaryGetAllEntries(SHT_info header_info_sht, HT_info header_info_ht,
     if (hash_table[bucket] == -1) return -1; // No blocks in the bucket
 
     int nextBlock = hash_table[bucket];
-    int blocksRead = 0;
+    int blocksRead = 1;     // We already read Block 0
     int foundAtLeastOneRecord = -1;     //A value to check if at least one record with the correct key was found
     while(nextBlock != -1) {
         //Reading a block
@@ -379,11 +397,13 @@ int SHT_SecondaryGetAllEntries(SHT_info header_info_sht, HT_info header_info_ht,
         blocksRead++;   //Increasing the blocksRead counter
         memcpy(&block, blockData, sizeof(SecondaryBlock));
 
+
         //Searching for a record with the correct key.
         for (int i = 0; i < block.counter; i++) {
-            if (strcmp(block.record[i].name, key) == 0) {      //Found a record with the correct key value.
+            if (strcmp(block.record[i].attribute, key) == 0) {      //Found a record with the correct key value.
                 Record record;
                 record = HT_GetRecordFromKey(header_info_ht.fileDesc,block.record[i].blockId,(void*)&block.record[i].id);
+                blocksRead++;   //The above function reads only 1 block
                 if(record.id != DELETED_RECORD_ID) {
                     printRecordInfo(record);
                     foundAtLeastOneRecord = 0;
